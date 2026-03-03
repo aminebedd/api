@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model WoodItem {
+  id            Int                 @id @default(autoincrement())
+  type          String
+  thickness     Decimal             @db.Decimal(10, 2)
+  width         Decimal             @db.Decimal(10, 2)
+  pricePerMeter Decimal             @db.Decimal(12, 4)
+  createdAt     DateTime            @default(now())
+  stockBatches  StockBatch[]
+  remainders    Remainder[]
+  saleLines     SaleLine[]
+  movements     InventoryMovement[]
+}
+
+model StockBatch {
+  id           Int      @id @default(autoincrement())
+  woodItemId   Int
+  pieceLengthM Decimal  @db.Decimal(10, 3)
+  quantity     Int
+  createdAt    DateTime @default(now())
+  woodItem     WoodItem @relation(fields: [woodItemId], references: [id], onDelete: Cascade)
+
+  @@index([woodItemId, pieceLengthM])
+}
+
+model Remainder {
+  id           Int      @id @default(autoincrement())
+  woodItemId   Int
+  lengthM      Decimal  @db.Decimal(10, 3)
+  quantity     Int
+  createdAt    DateTime @default(now())
+  woodItem     WoodItem @relation(fields: [woodItemId], references: [id], onDelete: Cascade)
+
+  @@index([woodItemId, lengthM])
+}
+
+model Sale {
+  id           Int        @id @default(autoincrement())
+  customerName String?
+  totalAmount  Decimal    @db.Decimal(12, 2)
+  createdAt    DateTime   @default(now())
+  saleLines    SaleLine[]
+}
+
+model SaleLine {
+  id            Int      @id @default(autoincrement())
+  saleId        Int
+  woodItemId    Int
+  lengthSoldM   Decimal  @db.Decimal(10, 3)
+  quantity      Int
+  pricePerMeter Decimal  @db.Decimal(12, 4)
+  lineTotal     Decimal  @db.Decimal(12, 2)
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  woodItem      WoodItem @relation(fields: [woodItemId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+}
+
+model InventoryMovement {
+  id           Int          @id @default(autoincrement())
+  woodItemId   Int
+  movementType MovementType
+  fromLength   Decimal?     @db.Decimal(10, 3)
+  toLength     Decimal?     @db.Decimal(10, 3)
+  quantity     Int
+  createdAt    DateTime     @default(now())
+  woodItem     WoodItem     @relation(fields: [woodItemId], references: [id], onDelete: Cascade)
+
+  @@index([woodItemId, createdAt])
+}
+
+enum MovementType {
+  IN
+  OUT
+  TRANSFORM
+}
